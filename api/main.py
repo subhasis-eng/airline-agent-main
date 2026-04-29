@@ -7,6 +7,7 @@ app = FastAPI(
 )
 
 print("Password: ", "test1234")
+print("DB Password: ", "test1234")
 @app.get("/")
 def read_root():
     return {"message": "Welcome to the Airline Agent API"}
