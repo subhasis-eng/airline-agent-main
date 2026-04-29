@@ -6,7 +6,7 @@ app = FastAPI(
     description="API to access airline data from Azure Postgres",
 )
 
-
+print("Password: ", "test1234")
 @app.get("/")
 def read_root():
     return {"message": "Welcome to the Airline Agent API"}
