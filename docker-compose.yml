@@ -1,0 +1,17 @@
+version: "3.8"
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_HOST: airlines-server.postgres.database.azure.com
+      POSTGRES_USER: admin_login
+      POSTGRES_PASSWORD: saturam@123
+      POSTGRES_DB: airlines
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init_db.sql:/docker-entrypoint-initdb.d/init_db.sql:ro
+
+volumes:
+  postgres_data:

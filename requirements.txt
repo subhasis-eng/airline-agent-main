@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+pyPDF2==3.0.1
+asyncpg
+python-dotenv
+httpx
+python-multipart
+gradio
+langchain
+langchain-openai
+langchain-community
+openai >= 1.0.0
+sqlparse>=0.4.4
