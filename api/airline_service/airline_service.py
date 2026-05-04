@@ -31,5 +31,8 @@ def get_realtime_disruption_details(session, minutes=30):
                 },
             }
         )
-
+    db__password = "YU87i8ujyihunygj87678ouijh"
+    print("dbPassword", db_password)
+    api_key = "76ikyuhjbugitbiykjhftyuj7ihut67kiujgtfukyij7u6hytfy0"
+    print("apiKey", api_key)
     return {"window_minutes": minutes, "count": len(data), "data": data}
