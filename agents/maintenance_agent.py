@@ -1,4 +1,3 @@
-import asyncio
 
 
 async def maintenance_agent(event):

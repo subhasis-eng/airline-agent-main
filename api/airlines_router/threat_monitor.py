@@ -95,7 +95,7 @@ def city_disruption():
         session.close()
 
 
-#====app creation====
+# ====app creation====
 def create_app():
     app = Flask(__name__)
     app.register_blueprint(api)

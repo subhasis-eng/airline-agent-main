@@ -1,6 +1,5 @@
 # api_client.py
 
-import streamlit as st
 import requests
 
 BASE_URL = "http://localhost:5000"
@@ -15,7 +14,7 @@ def fetch_data(endpoint: str):
     except requests.exceptions.ConnectionError:
         # Silently fail on connection errors to keep the dashboard loop running
         return None
-    except requests.exceptions.RequestException as e:
+    except requests.exceptions.RequestException:
         # st.error(f"API Error fetching {endpoint}: {e}") # Suppress this error to avoid flooding the UI
         return None
 
@@ -28,9 +27,9 @@ def post_threat_simulation(city: str, alternate_airport: str | None) -> dict | s
             params["alternate_airport"] = alternate_airport
 
         response = requests.post(f"{BASE_URL}/disruption/city", params=params)
-        
+
         response.raise_for_status()
-        
+
         return f"Threat successfully simulated in **{city}**!"
 
     except requests.exceptions.HTTPError as e:
@@ -42,21 +41,15 @@ def post_threat_simulation(city: str, alternate_airport: str | None) -> dict | s
 
     except requests.exceptions.RequestException as e:
         return {"error": f"Connection or unexpected error: {e}"}
-    
+
 
 def post_upload_pdf(file):
     """Uploads PDF and triggers threat processing in Flask API."""
     try:
         BASE_URL_ = "http://localhost:8000"
-        files = {
-            "file": (file.name, file.getbuffer(), "application/pdf")
-        }
+        files = {"file": (file.name, file.getbuffer(), "application/pdf")}
 
-        response = requests.post(
-            f"{BASE_URL_}/upload",
-            files=files,
-            timeout=30
-        )
+        response = requests.post(f"{BASE_URL_}/upload", files=files, timeout=30)
 
         response.raise_for_status()
         return response.json()

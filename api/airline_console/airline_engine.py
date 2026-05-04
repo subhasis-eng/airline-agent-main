@@ -146,7 +146,7 @@ def save_vouchers(session, vouchers: list):
 
 def get_city_by_airport_code(session, airport_code: str) -> str:
     airport_code = airport_code[0]
-    print("airport_code::",airport_code)
+    print("airport_code::", airport_code)
     airport = session.query(Airport).filter_by(airport_code=airport_code).first()
     if not airport:
         raise ValueError(f"Invalid airport code: {airport_code}")

@@ -3,6 +3,7 @@ from langchain_openai import ChatOpenAI
 from langchain.schema import HumanMessage, SystemMessage
 from database import get_pool
 
+
 async def execute_sql(statements: list[str]):
     """Execute raw SQL statements sequentially."""
     pool = await get_pool()
@@ -16,15 +17,18 @@ async def execute_sql(statements: list[str]):
             except Exception as e:
                 print(f"❌ [DB] Step {idx} failed: {e}")
 
-async def generate_bomb_threat_query(airport_code: str, reroute_destination: str, event_time: str):
+
+async def generate_bomb_threat_query(
+    airport_code: str, reroute_destination: str, event_time: str
+):
     print(f"[SQL] Generating queries for {airport_code} -> {reroute_destination}")
-    
+
     # We use a strict prompt to ensure valid PGSQL is generated
     system_instruction = (
         "You are a senior PostgreSQL expert for airline bomb threat response. "
         "You must generate production-ready SQL that handles bomb threat scenarios."
     )
-    
+
     user_context = f"""
 You are generating SQL for a PRODUCTION PostgreSQL system.
 Incorrect SQL will break execution.
@@ -165,12 +169,11 @@ FINAL OUTPUT RULES
 """
 
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
-    
-    response = await llm.ainvoke([
-        SystemMessage(content=system_instruction),
-        HumanMessage(content=user_context)
-    ])
-    
+
+    response = await llm.ainvoke(
+        [SystemMessage(content=system_instruction), HumanMessage(content=user_context)]
+    )
+
     content = response.content
     if "```sql" in content:
         sql_block = re.search(r"```sql(.*?)```", content, re.S).group(1)
@@ -182,9 +185,8 @@ FINAL OUTPUT RULES
 
     # Clean up and split statements
     statements = [s.strip() + ";" for s in sql_block.split(";") if s.strip()]
-    
+
     if statements:
         await execute_sql(statements)
     else:
         print("⚠️ No SQL statements generated")
-

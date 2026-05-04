@@ -4,9 +4,8 @@ from pydantic import BaseModel
 from typing import Dict, List, Optional
 import uuid
 
-from langchain_core.messages import SystemMessage, HumanMessage
 
-from irops_agent_v5 import build_agent, process_user_input, SYSTEM_PROMPT
+from irops_agent_v5 import build_agent, process_user_input
 
 
 app = FastAPI(title="IROPS Agent API", version="1.0")
@@ -40,7 +39,6 @@ class ChatResponse(BaseModel):
     reply: str
 
 
-
 @app.get("/health")
 def health():
     return {"status": "ok"}
@@ -61,18 +59,13 @@ def chat(req: ChatRequest):
     print("HISTORY LENGTH:", len(history))
 
     new_messages = process_user_input(
-        agent=agent,
-        history=history,
-        user_text=req.message
+        agent=agent, history=history, user_text=req.message
     )
 
     history.clear()
     history.extend(new_messages)
 
-    return ChatResponse(
-        session_id=session_id,
-        reply=history[-1].content
-    )
+    return ChatResponse(session_id=session_id, reply=history[-1].content)
 
 
 @app.post("/analysis")
@@ -88,23 +81,19 @@ def analysis():
                     "Check runway availability",
                     "Evaluate crew legality",
                     "Assess passenger impact",
-                    "Recommend action"
-                ]
+                    "Recommend action",
+                ],
             },
             {
                 "type": "summary",
                 "title": "Operational Summary",
-                "text": "Crew shortage and runway constraints detected at BOM."
-            }
-        ]
+                "text": "Crew shortage and runway constraints detected at BOM.",
+            },
+        ],
     }
 
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(
-        "api:app",
-        host="localhost",
-        port=8000,
-        reload=True
-    )
+
+    uvicorn.run("api:app", host="localhost", port=8000, reload=True)

@@ -45,7 +45,7 @@ def poll_logs():
             logs_display = json.dumps(logs, indent=2)
             log_box.update(logs_display)
 
-        except Exception as e:
+        except Exception:
             pass
 
         time.sleep(2)
