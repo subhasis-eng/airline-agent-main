@@ -23,10 +23,10 @@ st.set_page_config(
 CRITICAL_COLOR = "#FF4B4B"
 
 # ---------------- SESSION STATE ----------------
-if 'filter_flight' not in st.session_state:
-    st.session_state['filter_flight'] = ''
-if 'filter_status' not in st.session_state:
-    st.session_state['filter_status'] = 'All'
+if "filter_flight" not in st.session_state:
+    st.session_state["filter_flight"] = ""
+if "filter_status" not in st.session_state:
+    st.session_state["filter_status"] = "All"
 
 # ---------------- HELPERS ----------------
 def display_pdf(file):
@@ -36,8 +36,9 @@ def display_pdf(file):
         <iframe src="data:application/pdf;base64,{base64_pdf}"
                 width="100%" height="500"></iframe>
         """,
-        unsafe_allow_html=True
+        unsafe_allow_html=True,
     )
+
 
 # ---------------- SIDEBAR ----------------
 with st.sidebar:
@@ -46,16 +47,13 @@ with st.sidebar:
         <h1 style='color: {CRITICAL_COLOR};'>🚨 ALERT</h1>
         <p>Operational Status: <b>Real-Time Monitoring</b></p>
         """,
-        unsafe_allow_html=True
+        unsafe_allow_html=True,
     )
 
     st.markdown("---")
     st.subheader("📄 Upload Threat PDF")
 
-    uploaded_pdf = st.file_uploader(
-        "Upload PDF",
-        type=["pdf"]
-    )
+    uploaded_pdf = st.file_uploader("Upload PDF", type=["pdf"])
 
     if uploaded_pdf:
         with st.spinner("Uploading and processing PDF..."):
@@ -63,7 +61,9 @@ with st.sidebar:
 
         if isinstance(response, dict) and response.get("status") == "success":
             st.success("PDF uploaded and processed successfully")
-            st.info(f"🧠 Detected Threat Type: **{response.get('threat_type', 'Unknown')}**")
+            st.info(
+                f"🧠 Detected Threat Type: **{response.get('threat_type', 'Unknown')}**"
+            )
             display_pdf(uploaded_pdf)
         else:
             st.error(response)
@@ -99,36 +99,36 @@ col_search, col_filter, col_download = st.columns([3, 2, 1])
 with col_search:
     flight_search = st.text_input(
         "Search Flight Number",
-        value=st.session_state['filter_flight'],
-        placeholder="F1001"
+        value=st.session_state["filter_flight"],
+        placeholder="F1001",
     )
-    st.session_state['filter_flight'] = flight_search
+    st.session_state["filter_flight"] = flight_search
 
 with col_filter:
     try:
-        status_options = ['All'] + sorted(
-            pd.DataFrame(incident_feed_data)['Status'].unique().tolist()
+        status_options = ["All"] + sorted(
+            pd.DataFrame(incident_feed_data)["Status"].unique().tolist()
         )
     except:
-        status_options = ['All', 'Cancelled', 'Rerouted', 'Resolved']
+        status_options = ["All", "Cancelled", "Rerouted", "Resolved"]
 
     status_filter = st.selectbox("Status", status_options)
-    st.session_state['filter_status'] = status_filter
+    st.session_state["filter_status"] = status_filter
 
 with col_download:
     full_df = pd.DataFrame(incident_feed_data)
     download_df = full_df.copy()
 
-    if st.session_state['filter_flight']:
+    if st.session_state["filter_flight"]:
         download_df = download_df[
-            download_df['Flight'].str.contains(
-                st.session_state['filter_flight'], case=False, na=False
+            download_df["Flight"].str.contains(
+                st.session_state["filter_flight"], case=False, na=False
             )
         ]
 
-    if st.session_state['filter_status'] != 'All':
+    if st.session_state["filter_status"] != "All":
         download_df = download_df[
-            download_df['Status'] == st.session_state['filter_status']
+            download_df["Status"] == st.session_state["filter_status"]
         ]
 
     csv = convert_df_to_csv(download_df)
@@ -137,12 +137,12 @@ with col_download:
         csv,
         "filtered_incidents.csv",
         "text/csv",
-        use_container_width=True
+        use_container_width=True,
     )
 
 # ---------------- INCIDENT FEED ----------------
 render_incident_feed(
     incident_feed_data,
-    flight_filter=st.session_state['filter_flight'],
-    status_filter=st.session_state['filter_status']
+    flight_filter=st.session_state["filter_flight"],
+    status_filter=st.session_state["filter_status"],
 )

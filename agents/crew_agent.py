@@ -119,9 +119,9 @@ async def crew_agent(event: dict) -> dict:
                 "raw_response": output,
             }
 
-        print(f"[crew_agent] Completed")
+        print("[crew_agent] Completed")
         return response
 
     except Exception as e:
-        print(f"[crew_agent] Error:", repr(e))
+        print("[crew_agent] Error:", repr(e))
         return {"status": "error", "event_id": event.get("event_id"), "error": str(e)}

@@ -1,11 +1,9 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func, create_engine
+from sqlalchemy import create_engine
 from sqlalchemy.pool import NullPool
 
-from datetime import datetime, timedelta
 from pathlib import Path
 from api.models import *
-import os
 from urllib.parse import quote_plus
 
 CONFIG_DIR = Path(r"C:\Users\OrCon\airlines\secrets")

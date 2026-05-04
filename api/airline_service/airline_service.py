@@ -1,4 +1,3 @@
-from datetime import datetime, timedelta
 
 from api.airline_console.airline_engine import fetch_realtime_disruptions
 

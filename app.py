@@ -3,7 +3,7 @@ import asyncio
 from parser import extract_text_from_pdf, parse_event_data
 from task_queue import TASK_QUEUE, task_worker
 from agents.routing_ai import ai_decide_agent
-from database import init_db, insert_master_decision, get_pool
+from database import init_db, insert_master_decision
 from decision_worker import decision_poller
 from agents.weather_agent import weather_agent
 from agents.crew_agent import crew_agent
@@ -11,8 +11,6 @@ from agents.monitoring import monitoring_agent
 from agents.bomb_threat_agent import bomb_threat_agent
 from io import BytesIO
 from dotenv import load_dotenv
-import json
-import os
 import requests
 
 url = "http://localhost:5000"
@@ -87,16 +85,12 @@ async def upload_pdf(file: UploadFile = File(...)):
                 "type": event["event_type"][0].lower(),
                 "severity": event.get("severity"),
                 "airport_code": event.get("airport_code"),
-                "alternate_airport": None
+                "alternate_airport": None,
             }
 
             DISRUPTION_API_URL = f"{url}/disruption/city"
             try:
-                response = requests.post(
-                    DISRUPTION_API_URL,
-                    json=data,
-                    timeout=5
-                )
+                response = requests.post(DISRUPTION_API_URL, json=data, timeout=5)
                 print("Disruption API status:", response.status_code)
                 try:
                     print("Disruption API response:", response.json())
@@ -105,7 +99,6 @@ async def upload_pdf(file: UploadFile = File(...)):
 
             except requests.exceptions.RequestException as e:
                 print("Disruption API call failed:", str(e))
-
 
         # Immediately enqueue agents for low-latency response
         await enqueue_agents_for_decision(selected_agents, event)

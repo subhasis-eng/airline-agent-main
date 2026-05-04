@@ -1,5 +1,4 @@
 import time
-import asyncio
 
 # simple in-memory counters (replace with DB for persistence)
 MONITOR_LOG = []

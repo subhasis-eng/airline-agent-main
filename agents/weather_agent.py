@@ -1,5 +1,4 @@
 from langchain_openai import ChatOpenAI
-import sqlparse
 from tools.generate_and_execute_query import generate_and_execute_query
 
 from database import get_pool

@@ -24,7 +24,6 @@ from langchain.tools import tool
 from tavily import TavilyClient
 from db_connection import get_database_connection
 from datetime import datetime
-from services.cancellation_notification_service import notify_passengers_of_cancellation
 
 print(sys.path)
 load_dotenv()
@@ -55,7 +54,9 @@ class TokenBucket:
     def consume(self, tokens: int = 1):
         with self.lock:
             now = time.time()
-            self.tokens = min(self.capacity, self.tokens + (now - self.last_refill) * self.rate)
+            self.tokens = min(
+                self.capacity, self.tokens + (now - self.last_refill) * self.rate
+            )
             self.last_refill = now
             if self.tokens >= tokens:
                 self.tokens -= tokens
@@ -91,11 +92,14 @@ def hallucination_guard(text: str):
         raise ValueError("Possible hallucination")
 
 
-llm = ChatOpenAI(model="gpt-4o-mini", temperature=0, top_p=1,
-                 frequency_penalty=0,
-                 presence_penalty=0,
-                 seed=42
-                 )
+llm = ChatOpenAI(
+    model="gpt-4o-mini",
+    temperature=0,
+    top_p=1,
+    frequency_penalty=0,
+    presence_penalty=0,
+    seed=42,
+)
 llm_with_tools = None  # Will be initialized in build_agent()
 
 tavily = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
@@ -141,7 +145,7 @@ def cancel_flight(flight_id: str, flight_date: str):
             "success": False,
             "flight_id": flight_id,
             "date": flight_date,
-            "reason": "Flight not found"
+            "reason": "Flight not found",
         }
 
     current_status = before[0][0]
@@ -151,7 +155,7 @@ def cancel_flight(flight_id: str, flight_date: str):
             "success": True,
             "flight_id": flight_id,
             "date": flight_date,
-            "new_status": "Cancelled"
+            "new_status": "Cancelled",
         }
 
     update_sql = f"""
@@ -167,7 +171,7 @@ def cancel_flight(flight_id: str, flight_date: str):
         "success": True,
         "flight_id": flight_id,
         "date": flight_date,
-        "new_status": "Cancelled"
+        "new_status": "Cancelled",
     }
 
 
@@ -478,7 +482,7 @@ def chatbot(state: AgentState):
         "external_hotels": False,
         "crew": False,
         "crew_load": False,
-        "diversion": False
+        "diversion": False,
     }
 
     if "modes" not in state or state["modes"] is None:
@@ -494,41 +498,88 @@ def chatbot(state: AgentState):
     last_msg = state["messages"][-1].content.lower()
 
     weather_keywords = [
-        "rain", "storm", "fog", "wind", "weather", "hail", "hailstones",
-        "visibility", "cyclone", "monsoon", "cloudburst"
+        "rain",
+        "storm",
+        "fog",
+        "wind",
+        "weather",
+        "hail",
+        "hailstones",
+        "visibility",
+        "cyclone",
+        "monsoon",
+        "cloudburst",
     ]
 
     aircraft_keywords = [
-        "airbus", "boeing", "embraer", "atr",
-        "a320", "a320neo", "777", "787", "engine issue", "mechanical", "hydraulic"
+        "airbus",
+        "boeing",
+        "embraer",
+        "atr",
+        "a320",
+        "a320neo",
+        "777",
+        "787",
+        "engine issue",
+        "mechanical",
+        "hydraulic",
     ]
 
     disruption_keywords = [
-        "delay", "cancel", "disrupt", "blocked runway",
-        "airport closed", "runway closed", "runway unavailable"
+        "delay",
+        "cancel",
+        "disrupt",
+        "blocked runway",
+        "airport closed",
+        "runway closed",
+        "runway unavailable",
     ]
 
     external_hotel_keywords = [
-        "more hotels", "other hotels", "outside airport", "other options",
-        "additional hotels", "external hotels"
+        "more hotels",
+        "other hotels",
+        "outside airport",
+        "other options",
+        "additional hotels",
+        "external hotels",
     ]
 
     crew_keywords = [
-        "crew legality", "crew legal", "duty time", "duty hours",
-        "rest time", "crew rest", "fatigue", "crew available",
-        "is crew legal", "crew check", "standby crew", "reserve crew"
+        "crew legality",
+        "crew legal",
+        "duty time",
+        "duty hours",
+        "rest time",
+        "crew rest",
+        "fatigue",
+        "crew available",
+        "is crew legal",
+        "crew check",
+        "standby crew",
+        "reserve crew",
     ]
 
     crew_load_keywords = [
-        "anyone overloaded", "crew overloaded", "crew fatigue", "crew status",
-        "crew health", "crew situation", "crew load", "how is the crew",
-        "crew availability at base"
+        "anyone overloaded",
+        "crew overloaded",
+        "crew fatigue",
+        "crew status",
+        "crew health",
+        "crew situation",
+        "crew load",
+        "how is the crew",
+        "crew availability at base",
     ]
 
     diversion_keywords = [
-        "divert", "diversion", "reroute arrivals", "cannot land",
-        "airport unavailable", "arrivals blocked", "where to divert",
-        "landing not possible"
+        "divert",
+        "diversion",
+        "reroute arrivals",
+        "cannot land",
+        "airport unavailable",
+        "arrivals blocked",
+        "where to divert",
+        "landing not possible",
     ]
 
     if not state["modes"]["weather"] and any(w in last_msg for w in weather_keywords):
@@ -537,28 +588,42 @@ def chatbot(state: AgentState):
 
     if not state["modes"]["aircraft"] and any(a in last_msg for a in aircraft_keywords):
         state["modes"]["aircraft"] = True
-        state["messages"].append(SystemMessage(content="Apply AIRCRAFT FAILURE reasoning."))
+        state["messages"].append(
+            SystemMessage(content="Apply AIRCRAFT FAILURE reasoning.")
+        )
 
     if not state["modes"]["runway"] and any(d in last_msg for d in disruption_keywords):
         state["modes"]["runway"] = True
-        state["messages"].append(SystemMessage(content="Apply RUNWAY RESCHEDULING logic."))
+        state["messages"].append(
+            SystemMessage(content="Apply RUNWAY RESCHEDULING logic.")
+        )
 
-    if not state["modes"]["external_hotels"] and any(h in last_msg for h in external_hotel_keywords):
+    if not state["modes"]["external_hotels"] and any(
+        h in last_msg for h in external_hotel_keywords
+    ):
         state["modes"]["external_hotels"] = True
-        state["messages"].append(SystemMessage(content="User wants more hotels; allow external search."))
+        state["messages"].append(
+            SystemMessage(content="User wants more hotels; allow external search.")
+        )
 
     if not state["modes"]["crew"] and any(k in last_msg for k in crew_keywords):
         state["modes"]["crew"] = True
-        state["messages"].append(SystemMessage(content="Apply CREW LEGALITY FRAMEWORK for all crew.")
-                                 )
+        state["messages"].append(
+            SystemMessage(content="Apply CREW LEGALITY FRAMEWORK for all crew.")
+        )
 
-    if not state["modes"]["crew_load"] and any(k in last_msg for k in crew_load_keywords):
-        state["messages"].append(SystemMessage(
-            content="Assess crew load and legality status for the base. Identify overloaded or high-risk crew."
+    if not state["modes"]["crew_load"] and any(
+        k in last_msg for k in crew_load_keywords
+    ):
+        state["messages"].append(
+            SystemMessage(
+                content="Assess crew load and legality status for the base. Identify overloaded or high-risk crew."
             )
-                                 )
+        )
 
-    if not state["modes"]["diversion"] and any(k in last_msg for k in diversion_keywords):
+    if not state["modes"]["diversion"] and any(
+        k in last_msg for k in diversion_keywords
+    ):
         state["messages"].append(
             SystemMessage(
                 content="Apply DIVERSION HEURISTIC FRAMEWORK (no distance data)."
@@ -573,10 +638,14 @@ def chatbot(state: AgentState):
         state["tool_attempts"] += 1
 
         if state["tool_attempts"] > 5:
-            fallback = llm.invoke([
-                SystemMessage(content="SQL insufficient. Provide final answer and reasoning without tools."),
-                *state["messages"]
-            ])
+            fallback = llm.invoke(
+                [
+                    SystemMessage(
+                        content="SQL insufficient. Provide final answer and reasoning without tools."
+                    ),
+                    *state["messages"],
+                ]
+            )
             return {"messages": state["messages"] + [fallback], "tool_attempts": 0}
 
         return {"messages": [response]}
@@ -608,7 +677,7 @@ def build_agent():
         search_nearby_hotels,
         get_flight_crew,
         get_reserve_crew,
-        cancel_flight
+        cancel_flight,
     ]
     llm_with_tools = llm.bind_tools(tools)
 
@@ -621,9 +690,7 @@ def build_agent():
     graph.add_conditional_edges("chatbot", tools_condition)
     graph.add_edge("tools", "chatbot")
     graph.add_conditional_edges(
-        "tools",
-        stop_after_cancel,
-        {True: END, False: "chatbot"}
+        "tools", stop_after_cancel, {True: END, False: "chatbot"}
     )
     graph.add_edge("final", END)
     return graph.compile()
@@ -648,11 +715,7 @@ def process_user_input(agent, history, user_text):
 
     messages.append(HumanMessage(content=user_text))
 
-    result = agent.invoke({
-        "messages": messages,
-        "modes": {},
-        "tool_attempts": 0
-    })
+    result = agent.invoke({"messages": messages, "modes": {}, "tool_attempts": 0})
 
     hallucination_guard(result["messages"][-1].content)
     cache_set(cache_key, result["messages"])
@@ -677,10 +740,7 @@ if __name__ == "__main__":
             pending = PENDING_ACTIONS[session_id]
 
             if user_input.lower() == "yes":
-                result = cancel_flight(
-                    pending["flight_id"],
-                    pending["flight_date"]
-                )
+                result = cancel_flight(pending["flight_id"], pending["flight_date"])
 
                 if result.get("success"):
                     (pending["flight_id"])
@@ -700,4 +760,3 @@ if __name__ == "__main__":
 
         last_msg = history[-1].content
         print("\nAI Ops Manager:", last_msg)
-

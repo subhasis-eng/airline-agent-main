@@ -5,18 +5,24 @@ from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langchain.schema import HumanMessage, SystemMessage
 
-from tools.tools import get_flights, get_airport, get_passenger_booking, get_crew_assignment, get_disruption
+from tools.tools import (
+    get_flights,
+    get_airport,
+    get_passenger_booking,
+    get_crew_assignment,
+)
 from tools.generate_bomb_threat_query import generate_bomb_threat_query
 from tools.send_email import send_email
 from database import get_pool
 
 load_dotenv()
 
+
 async def notify_bomb_threat_passengers():
     """Confirms bomb threat notifications for recent events."""
     pool = await get_pool()
     results = []
-    
+
     query = """
         SELECT booking_id, flight_id, passenger_id, passenger_name, passenger_email,
                airport_code, reason, rescheduled_at
@@ -31,18 +37,24 @@ async def notify_bomb_threat_passengers():
     print(f"[Notifications] Found {len(rows)} passengers to alert.")
 
     for row in rows:
-        p_name = row['passenger_name']
-        p_email = row['passenger_email']
-        flight_id = row['flight_id']
-        reason = row['reason']
-        t_stamp = row['rescheduled_at'].strftime('%Y-%m-%d %H:%M') if row['rescheduled_at'] else 'N/A'
-        
+        p_name = row["passenger_name"]
+        p_email = row["passenger_email"]
+        flight_id = row["flight_id"]
+        reason = row["reason"]
+        t_stamp = (
+            row["rescheduled_at"].strftime("%Y-%m-%d %H:%M")
+            if row["rescheduled_at"]
+            else "N/A"
+        )
+
         if not p_email:
-            results.append({"passenger_id": row['passenger_id'], "status": "missing_email"})
+            results.append(
+                {"passenger_id": row["passenger_id"], "status": "missing_email"}
+            )
             continue
 
         # Notification content depends on whether they were rerouted or cancelled
-        if 'REROUTED' in reason:
+        if "REROUTED" in reason:
             subject = f"Flight {flight_id} Diverted - Security Alert"
             body = f"""
 Dear {p_name},
@@ -80,38 +92,41 @@ Airline Operations
             print(f" -> Failed to send to {p_email}")
             status = "failed"
 
-        results.append({
-            "passenger_id": row['passenger_id'],
-            "email": p_email,
-            "status": status,
-            "flight_id": flight_id
-        })
+        results.append(
+            {
+                "passenger_id": row["passenger_id"],
+                "email": p_email,
+                "status": status,
+                "flight_id": flight_id,
+            }
+        )
 
     return {
         "processed": len(rows),
-        "sent": sum(1 for r in results if r['status'] == 'sent'),
-        "failed": sum(1 for r in results if r['status'] == 'failed')
+        "sent": sum(1 for r in results if r["status"] == "sent"),
+        "failed": sum(1 for r in results if r["status"] == "failed"),
     }
 
+
 async def bomb_threat_agent(event: dict) -> dict:
-    event_id = event.get('event_id')
+    event_id = event.get("event_id")
     print(f"[Agent] Processing Bomb Threat: {event_id}")
 
     # 1. Parsing Input
     try:
-        airport_code = event.get('airport_code')
+        airport_code = event.get("airport_code")
         # Handle cases where airport code might be a list or nested in json
         if not airport_code:
-            raw_json = event.get('event_json', {})
+            raw_json = event.get("event_json", {})
             if isinstance(raw_json, str):
                 raw_json = json.loads(raw_json)
-            airport_code = raw_json.get('airport_code')
-        
+            airport_code = raw_json.get("airport_code")
+
         if isinstance(airport_code, list):
             airport_code = airport_code[0]
-            
-        start_time = event.get('start_time', '')
-        date_str = start_time.split(' ')[0] if start_time else None
+
+        start_time = event.get("start_time", "")
+        date_str = start_time.split(" ")[0] if start_time else None
 
         if not airport_code:
             return {"status": "error", "error": "Missing airport_code"}
@@ -123,26 +138,34 @@ async def bomb_threat_agent(event: dict) -> dict:
             get_flights.ainvoke({}),
             get_airport.ainvoke({}),
             get_passenger_booking.ainvoke({}),
-            get_crew_assignment.ainvoke({})
+            get_crew_assignment.ainvoke({}),
         ]
         flights, airports, bookings, crew = await asyncio.gather(*tasks)
-        
+
         # 3. Filtering Data
         # We need to split flights into arriving (reroute) vs departing (cancel)
-        arriving = [f for f in flights if f.get('destination_airport') == airport_code]
-        departing = [f for f in flights if f.get('origin_airport') == airport_code]
+        arriving = [f for f in flights if f.get("destination_airport") == airport_code]
+        departing = [f for f in flights if f.get("origin_airport") == airport_code]
 
         if date_str:
-            arriving = [f for f in arriving if str(f.get('scheduled_arrival')).startswith(date_str)]
-            departing = [f for f in departing if str(f.get('scheduled_departure')).startswith(date_str)]
+            arriving = [
+                f
+                for f in arriving
+                if str(f.get("scheduled_arrival")).startswith(date_str)
+            ]
+            departing = [
+                f
+                for f in departing
+                if str(f.get("scheduled_departure")).startswith(date_str)
+            ]
 
-        flight_ids_arr = {f.get('flight_id') for f in arriving}
-        flight_ids_dep = {f.get('flight_id') for f in departing}
+        flight_ids_arr = {f.get("flight_id") for f in arriving}
+        flight_ids_dep = {f.get("flight_id") for f in departing}
         all_ids = flight_ids_arr | flight_ids_dep
 
-        affected_pax_arr = [b for b in bookings if b.get('flight_id') in flight_ids_arr]
-        affected_pax_dep = [b for b in bookings if b.get('flight_id') in flight_ids_dep]
-        affected_crew = [c for c in crew if c.get('flight_id') in all_ids]
+        affected_pax_arr = [b for b in bookings if b.get("flight_id") in flight_ids_arr]
+        affected_pax_dep = [b for b in bookings if b.get("flight_id") in flight_ids_dep]
+        affected_crew = [c for c in crew if c.get("flight_id") in all_ids]
 
         # 4. LLM Analysis
         system_prompt = """You are a Bomb Threat Response Agent for an airline operations center.
@@ -213,11 +236,10 @@ CREW ASSIGNMENTS ({len(affected_crew)}):
 
         print("[Agent] Consulting LLM...")
         llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
-        response_msg = await llm.ainvoke([
-            SystemMessage(content=system_prompt),
-            HumanMessage(content=user_prompt)
-        ])
-        
+        response_msg = await llm.ainvoke(
+            [SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)]
+        )
+
         # Clean response
         raw_text = response_msg.content
         if "```json" in raw_text:
@@ -226,7 +248,7 @@ CREW ASSIGNMENTS ({len(affected_crew)}):
             cleaned = raw_text.split("```")[1].split("```")[0].strip()
         else:
             cleaned = raw_text
-            
+
         try:
             decision = json.loads(cleaned)
         except:
@@ -234,14 +256,14 @@ CREW ASSIGNMENTS ({len(affected_crew)}):
             return {"status": "error", "raw": raw_text}
 
         # 5. Execution
-        dest = decision.get('reroute_destination')
+        dest = decision.get("reroute_destination")
         if dest:
             print(f"[Agent] Executing DB Updates -> Reroute: {dest}")
-            await generate_bomb_threat_query(airport_code, dest, start_time or 'NOW()')
-            
+            await generate_bomb_threat_query(airport_code, dest, start_time or "NOW()")
+
             print("[Agent] sending notifications...")
             stats = await notify_bomb_threat_passengers()
-            decision['notifications'] = stats
+            decision["notifications"] = stats
         else:
             print("[Agent] No reroute destination provided - skipping DB updates.")
 
@@ -249,5 +271,7 @@ CREW ASSIGNMENTS ({len(affected_crew)}):
 
     except Exception as e:
         print(f"[Agent] Critical Error: {e}")
-        import traceback; traceback.print_exc()
+        import traceback
+
+        traceback.print_exc()
         return {"status": "error", "error": str(e)}

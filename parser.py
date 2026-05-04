@@ -3,8 +3,6 @@ import PyPDF2
 import os
 import json
 import openai
-import math
-import time
 from dotenv import load_dotenv
 from concurrent.futures import ThreadPoolExecutor
 import asyncio

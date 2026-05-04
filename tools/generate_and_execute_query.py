@@ -1,4 +1,3 @@
-from langchain_openai import ChatOpenAI
 from langchain.schema import HumanMessage, SystemMessage
 import re
 from database import get_pool
