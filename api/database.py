@@ -16,7 +16,7 @@ POSTGRES_PASSWORD = quote(
 POSTGRES_DB = os.getenv("POSTGRES_DB", "airlines")
 
 DSN = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
-
+print("Password:", POSTGRES_PASSWORD)
 # Use a pool for production
 _pool = None
 
